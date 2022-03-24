@@ -44,3 +44,16 @@ code {
   min-width: 98vw;
   min-height: 98vh;
 }
+.box{
+  background-image: url("./assets/images/dashboard.jpg");
+  background-size: 100vw 100vh;
+  min-width: 99vw;
+  min-height: 99vh;
+}
+.expensesForm{
+  width: 40%;
+  margin-top: 5px;
+}
+#expDesc{
+  height: 20vh;
+}

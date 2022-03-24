@@ -36,6 +36,10 @@ type signup struct {
 	Email    string `valid:"Required; MaxSize(50)"`
 }
 
+type expenses struct{
+	description string
+	amount string
+}
 func main() {
 	err := godotenv.Load()
 	if err!=nil{
@@ -90,6 +94,17 @@ func main() {
 			c.String(http.StatusOK,"Internal server error")
 		}
 		c.String(http.StatusOK,"Successfully registered")
+
+	})
+
+	router.POST("/api/expenses",func(c* gin.Context){
+		var expense expenses
+		if err := c.ShouldBindJSON(&expense); err!=nil{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}
+		fmt.Println(expense.amount)
+		fmt.Println(expense.description)
 
 	})
 
