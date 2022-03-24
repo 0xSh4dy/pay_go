@@ -16,10 +16,18 @@ code {
     monospace;
 }
 
-.loginForm,.signupForm{
+.loginBox,.signupBox{
   position:relative;
   top:30vh;
   left: 40vw;
+}
+.msgBox{
+  position: relative;
+  left: 5vw;
+  bottom: 2vh;
+}
+.loginForm,.signupForm{
+
   background-color: aqua;
   width: fit-content;
 }
@@ -29,4 +37,10 @@ code {
 
 .txtHover{
   cursor: pointer;
+}
+.dashboard{
+  background-image: url("../src/assets/images/dashboard.jpg");
+  background-size: 100vw 100vh;
+  min-width: 98vw;
+  min-height: 98vh;
 }

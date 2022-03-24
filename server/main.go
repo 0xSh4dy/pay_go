@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"log"
 )
 
 
@@ -41,6 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 	db_url := os.Getenv("db_url")
+	jwt_secret := []byte(os.Getenv("jwt_secret"))
 	client := ConnectDB(db_url)
 	router := gin.Default()
 	router.Use(CORSMiddleware())
@@ -55,8 +57,18 @@ func main() {
 			return
 		}
 		loginStatus := HandleLogin(creds.Username,creds.Password,client)
-		fmt.Println(loginStatus)
-		c.JSON(http.StatusOK, gin.H{"result": "success"})
+		if loginStatus=="Invalid credentials"{
+			fmt.Println("Invalid credentials")
+			c.String(http.StatusOK ,"Invalid username or password")
+			return
+		}
+		token := createToken(creds.Username,jwt_secret)
+		if token=="Failed"{
+			c.String(http.StatusOK,"Internal server error")
+			fmt.Print("Internal server error")
+			return
+		}
+		c.String(http.StatusOK,token)
 	})
 	router.POST("/api/register/", func(c *gin.Context) {
 		var creds signup
@@ -68,10 +80,19 @@ func main() {
 		fmt.Println(creds.Password)
 		fmt.Println(creds.Email)
 		res := HandleSignup(creds.Username, creds.Password, creds.Email, client)
-		fmt.Println(res)
-		c.JSON(http.StatusOK, gin.H{"result": "success"})
+		if res=="Email taken"{
+			c.String(http.StatusOK,"Email is already taken")
+			return
+		}else if res=="Username taken"{
+			c.String(http.StatusOK,"Username is already taken")
+			return
+		}else if res=="Error"{
+			c.String(http.StatusOK,"Internal server error")
+		}
+		c.String(http.StatusOK,"Successfully registered")
 
 	})
+
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")
 }

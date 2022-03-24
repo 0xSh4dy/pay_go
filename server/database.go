@@ -71,6 +71,8 @@ func checkCreds(username string, password string, usersCollection *mongo.Collect
 	}
 	return "Correct creds"
 }
+
+
 func HandleLogin(username string, password string, client *mongo.Client)string{
 	usersCollection := client.Database("NarutoDB").Collection("users")
 	hash := sha256.Sum256([]byte(password))
@@ -88,10 +90,10 @@ func HandleSignup(username string, password string, email string, client *mongo.
 	hash := sha256.Sum256([]byte(password))
 	hashedPassword := fmt.Sprintf("%x",hash)
 	if emailStatus=="Email exists"{
-		return "Email is already taken"
+		return "Email taken"
 	}
 	if userStatus=="User exists"{
-		return "Username is already taken"
+		return "Username taken"
 	}
 	if userStatus=="No user" && emailStatus=="No email"{
 		oneUser := bson.D{{"username", username}, {"password", hashedPassword}, {"email", email}}
