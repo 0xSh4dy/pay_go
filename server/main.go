@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	// "reflect"
 	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
-
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -36,15 +37,20 @@ type signup struct {
 	Email    string `valid:"Required; MaxSize(50)"`
 }
 
-type expenses struct{
-	Amount string `valid:"Required; MaxSize(10)"`
-	Title string `valid:"Required; MaxSize(50)"`
+type expenses struct {
+	Amount      string `valid:"Required; MaxSize(10)"`
+	Title       string `valid:"Required; MaxSize(50)"`
 	Description string `valid:"Required; MaxSize(50)"`
-	Authtoken string `valid:"Required; MaxSize(50)"`
+	Authtoken   string `valid:"Required; MaxSize(50)"`
 }
+
+type cookies struct {
+	Authcookie string `valid:"Required; MaxSize(50)"`
+}
+
 func main() {
 	err := godotenv.Load()
-	if err!=nil{
+	if err != nil {
 		log.Fatal(err)
 	}
 	db_url := os.Getenv("db_url")
@@ -62,19 +68,19 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"result": err.Error()})
 			return
 		}
-		loginStatus := HandleLogin(creds.Username,creds.Password,client)
-		if loginStatus=="Invalid credentials"{
+		loginStatus := HandleLogin(creds.Username, creds.Password, client)
+		if loginStatus == "Invalid credentials" {
 			fmt.Println("Invalid credentials")
-			c.String(http.StatusOK ,"Invalid username or password")
+			c.String(http.StatusOK, "Invalid username or password")
 			return
 		}
-		token := createToken(creds.Username,jwt_secret)
-		if token=="Failed"{
-			c.String(http.StatusOK,"Internal server error")
+		token := createToken(creds.Username, jwt_secret)
+		if token == "Failed" {
+			c.String(http.StatusOK, "Internal server error")
 			fmt.Print("Internal server error")
 			return
 		}
-		c.String(http.StatusOK,token)
+		c.String(http.StatusOK, token)
 	})
 	router.POST("/api/register/", func(c *gin.Context) {
 		var creds signup
@@ -86,52 +92,75 @@ func main() {
 		fmt.Println(creds.Password)
 		fmt.Println(creds.Email)
 		res := HandleSignup(creds.Username, creds.Password, creds.Email, client)
-		if res=="Email taken"{
-			c.String(http.StatusOK,"Email is already taken")
+		if res == "Email taken" {
+			c.String(http.StatusOK, "Email is already taken")
 			return
-		}else if res=="Username taken"{
-			c.String(http.StatusOK,"Username is already taken")
+		} else if res == "Username taken" {
+			c.String(http.StatusOK, "Username is already taken")
 			return
-		}else if res=="Error"{
-			c.String(http.StatusOK,"Internal server error")
+		} else if res == "Error" {
+			c.String(http.StatusOK, "Internal server error")
 		}
-		c.String(http.StatusOK,"Successfully registered")
+		c.String(http.StatusOK, "Successfully registered")
 
 	})
 
-	router.POST("/api/expenses/",func(c* gin.Context){
+	router.POST("/api/expenses/", func(c *gin.Context) {
 		var expense expenses
-		if err:= c.ShouldBindJSON(&expense); err!=nil{
-			c.JSON(http.StatusBadRequest,gin.H{"result":err.Error()})
-			return 
+		if err := c.ShouldBindJSON(&expense); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"result": err.Error()})
+			return
 		}
 		fmt.Println(expense.Amount)
 		fmt.Println(expense.Title)
 		fmt.Println(expense.Description)
 		fmt.Println(expense.Authtoken)
-		amount,err := strconv.Atoi(expense.Amount)
-		if err!=nil{
+		amount, err := strconv.Atoi(expense.Amount)
+		if err != nil {
 			log.Fatal(err)
 		}
 		fmt.Println(amount)
-		username := VerifyToken(expense.Authtoken,jwt_secret)
+		username := VerifyToken(expense.Authtoken, jwt_secret)
 		fmt.Println(username)
+		if username == "Unauthorized access" {
+			c.String(http.StatusOK, "Unauthorized access")
+			return
+		} else if username == "Bad request" {
+			c.String(http.StatusOK, "Bad request")
+			return
+		}
+		fmt.Println(amount)
+		fmt.Println(username)
+		result := AddExpense(username, amount, expense.Title, expense.Description, client)
+		if result == "Error" {
+			c.String(http.StatusOK, "Internal server error")
+		}
+		c.String(http.StatusOK, "Added to database")
+	})
+
+	router.GET("/api/expenses/", func(c *gin.Context) {
+		token := c.Query("token")
+		month,err := strconv.Atoi(c.Query("month"))
+		if err!=nil{
+			fmt.Println(err)
+			return
+		}
+		year,err := strconv.Atoi(c.Query("year"))
+		if(err!=nil){
+			fmt.Println(err)
+			return
+		}
+		username := VerifyToken(token,jwt_secret)
 		if username=="Unauthorized access"{
 			c.String(http.StatusOK,"Unauthorized access")
 			return 
 		}else if username=="Bad request"{
 			c.String(http.StatusOK,"Bad request")
-			return 
+			return
 		}
-		fmt.Println(amount)
-		fmt.Println(username)
-		result := AddExpense(username,amount,expense.Title,expense.Description,client)
-		if result=="Error"{
-			c.String(http.StatusOK,"Internal server error")
-		}
-		c.String(http.StatusOK,"Added to database")
+		stats := FetchExpenses(username,year,month,client)
+		c.String(http.StatusOK, stats)
 	})
-
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")
 }

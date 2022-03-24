@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"context"
 	"log"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	"encoding/json"
+	// "reflect"
 	"time"
+
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // func Insert(params ...string) {
@@ -60,60 +65,94 @@ func checkUsername(username string, usersCollection *mongo.Collection) string {
 	return "User exists"
 }
 
-func checkCreds(username string, password string, usersCollection *mongo.Collection)string{
-	filter := bson.D{{"username",username},{"password",password}}
+func checkCreds(username string, password string, usersCollection *mongo.Collection) string {
+	filter := bson.D{{"username", username}, {"password", password}}
 	var result bson.M
-	err := usersCollection.FindOne(context.TODO(),filter).Decode(&result)
-	if err!=nil{
-		if fmt.Sprint(err)=="mongo: no documents in result"{
+	err := usersCollection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		if fmt.Sprint(err) == "mongo: no documents in result" {
 			return "Invalid creds"
 		}
 	}
 	return "Correct creds"
 }
 
-
-func HandleLogin(username string, password string, client *mongo.Client)string{
+func HandleLogin(username string, password string, client *mongo.Client) string {
 	usersCollection := client.Database("NarutoDB").Collection("users")
 	hash := sha256.Sum256([]byte(password))
-	hashedPassword := fmt.Sprintf("%x",hash)
-	credStatus := checkCreds(username,hashedPassword,usersCollection)
-	if credStatus == "Invalid creds"{
+	hashedPassword := fmt.Sprintf("%x", hash)
+	credStatus := checkCreds(username, hashedPassword, usersCollection)
+	if credStatus == "Invalid creds" {
 		return "Invalid credentials"
 	}
 	return "Logged in"
 }
 
-func AddExpense(username string, amount int, title string, description string, client *mongo.Client)string{
-	usersCollection := client.Database("NarutoDB").Collection("expenses")
-	oneUser := bson.D{{"username",username},{"amount",amount},{"title",title},{"description",description}}
-	insertResult,err := usersCollection.InsertOne(context.TODO(),oneUser)
-	if err!=nil{
-		return "Error"
-	}
-	fmt.Println(insertResult)
-	return "Done"
-}
-
 func HandleSignup(username string, password string, email string, client *mongo.Client) string {
 	usersCollection := client.Database("NarutoDB").Collection("users")
-	userStatus := checkUsername(username,usersCollection)
-	emailStatus := checkEmail(email,usersCollection)
+	userStatus := checkUsername(username, usersCollection)
+	emailStatus := checkEmail(email, usersCollection)
 	hash := sha256.Sum256([]byte(password))
-	hashedPassword := fmt.Sprintf("%x",hash)
-	if emailStatus=="Email exists"{
+	hashedPassword := fmt.Sprintf("%x", hash)
+	if emailStatus == "Email exists" {
 		return "Email taken"
 	}
-	if userStatus=="User exists"{
+	if userStatus == "User exists" {
 		return "Username taken"
 	}
-	if userStatus=="No user" && emailStatus=="No email"{
+	if userStatus == "No user" && emailStatus == "No email" {
 		oneUser := bson.D{{"username", username}, {"password", hashedPassword}, {"email", email}}
 		insertResult, err := usersCollection.InsertOne(context.TODO(), oneUser)
 		if err != nil {
 			return "Error"
 		}
 		fmt.Println(insertResult)
-			}
+	}
 	return "Done"
+}
+
+func AddExpense(username string, amount int, title string, description string, client *mongo.Client) string {
+	usersCollection := client.Database("NarutoDB").Collection("expenses")
+	day := time.Now().Day()
+	month := time.Now().Month()
+	year := time.Now().Year()
+	oneUser := bson.D{{"username", username}, {"amount", amount}, {"title", title}, {"description", description}, {"day", day}, {"month", month}, {"year", year}}
+	insertResult, err := usersCollection.InsertOne(context.TODO(), oneUser)
+	if err != nil {
+		return "Error"
+	}
+	fmt.Println(insertResult)
+	return "Done"
+}
+
+func FetchExpenses(username string, year int, month int, client *mongo.Client)string {
+	usersCollection := client.Database("NarutoDB").Collection("expenses")
+	var filter bson.D
+	if year == 0 && month == 0 {
+		filter = bson.D{{"username", username}}
+	} else if year == 0 && month != 0 {
+		filter = bson.D{{"username", username}, {"month", month}}
+	} else if year != 0 && month == 0 {
+		filter = bson.D{{"username", username}, {"year", year}}
+	} else {
+		filter = bson.D{{"username", username}, {"year", year}, {"month", month}}
+	}
+	data, err := usersCollection.Find(context.TODO(), filter)
+	var results []bson.M
+	if err = data.All(context.TODO(), &results); err != nil {
+		return "Internal server error"
+	}
+	if err != nil {
+		return "Internal server error"
+	}
+	// for _, result := range results {
+	// 	jsonByte, err := json.Marshal(result)
+	// 	if err!=nil{
+	// 		log.Fatal(err)
+	// 	}
+	// 	// fmt.Println(string(jsonByte))
+	// }
+
+	r1,err := json.Marshal(results)
+	return string(r1)
 }

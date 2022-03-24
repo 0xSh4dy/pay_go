@@ -8,13 +8,36 @@ function Expenses(){
     const [description,setDescription] = useState("");
     const [amount,setAmount] = useState(0);
     const [title,setTitle] = useState("");
-
+    const [year,setYear] = useState(0);
+    const [month,setMonth] = useState(0);
+    const [btnText,setbtnText] = useState("Add new");
     useEffect(()=>{
         const cookie = new Cookies();
         const authCookie = cookie.get("auth");
         if(authCookie===undefined){
             window.location.href = "";
         }
+        let data = {authCookie:authCookie};
+        console.log(year,month);
+        axios({
+            method:"get",
+            url:"http://127.0.0.1:7000/api/expenses/",
+            params:{
+                token:authCookie,
+                year:year,
+                month:month
+            }
+        }).then((res)=>{
+            if(res.data==="Unauthorized access"){
+                window.location.href = "/unauthorized"
+            }
+            else if(res.data==="Bad request"){
+                window.location.href = "/badrequest"
+            }
+            else{
+                console.log(res.data)
+            }
+        })
     },[])
 
     function SubmitForm(){
@@ -27,22 +50,32 @@ function Expenses(){
             url:"http://127.0.0.1:7000/api/expenses/",
             data:data,
         }).then((res)=>{
-            console.log("Response is "+res.data);
+            if(res.data==="Added to database"){
+                window.alert("Saved");
+                setNewEntry(false);
+            }
         });
     }
     function FilterBox(){
         return (
             <div className="flex justify-evenly">
                 <div className="mt-5">
-                    <input className="bg-[#9AD0FA] p-2" type="number" min="0" placeholder="Year" ></input>
+                    <input className="bg-[#9AD0FA] p-2" type="number" min="0" placeholder="Year" onChange={(e)=>{setYear(e.target.value)}}></input>
                 </div>
                 <div className="mt-5">
-                    <input className="bg-[#9AD0FA] p-2" type="number" min="0" placeholder="Month" ></input>
+                    <input className="bg-[#9AD0FA] p-2" type="number" min="0" placeholder="Month" onChange={(e)=>{setMonth(e.target.value)}}></input>
                 </div>
                 <div className="mt-5">
                     <button onClick={()=>{
+                        if(newEntry===false){
+                            setbtnText("Cancel");
                         setNewEntry(true);
-                    }} className="bg-[#BDFA9A] text-blue-500 p-2 rounded-3xl">Add New</button>
+                    }
+                    else {
+                        setNewEntry(false);
+                        setbtnText("Add new");
+                    }
+                    }} className="bg-[#BDFA9A] text-blue-500 p-2 rounded-3xl">{btnText}</button>
                 </div>
             </div>
         )
