@@ -21,7 +21,7 @@ func createToken(username string, jwt_key []byte)string{
 	return tokenStr
 }
 
-func VerifyToken(token string,jwt_key string) string{
+func VerifyToken(token string,jwt_key []byte) string{
 	claims := &Claims{}
 	tok,err := jwt.ParseWithClaims(token, claims,func(t *jwt.Token)(interface{},error){
 		return jwt_key,nil

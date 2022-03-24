@@ -83,6 +83,18 @@ func HandleLogin(username string, password string, client *mongo.Client)string{
 	}
 	return "Logged in"
 }
+
+func AddExpense(username string, amount int, title string, description string, client *mongo.Client)string{
+	usersCollection := client.Database("NarutoDB").Collection("expenses")
+	oneUser := bson.D{{"username",username},{"amount",amount},{"title",title},{"description",description}}
+	insertResult,err := usersCollection.InsertOne(context.TODO(),oneUser)
+	if err!=nil{
+		return "Error"
+	}
+	fmt.Println(insertResult)
+	return "Done"
+}
+
 func HandleSignup(username string, password string, email string, client *mongo.Client) string {
 	usersCollection := client.Database("NarutoDB").Collection("users")
 	userStatus := checkUsername(username,usersCollection)

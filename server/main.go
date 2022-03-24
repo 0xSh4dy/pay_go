@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-
+	"strconv"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -37,8 +37,10 @@ type signup struct {
 }
 
 type expenses struct{
-	description string
-	amount string
+	Amount string `valid:"Required; MaxSize(10)"`
+	Title string `valid:"Required; MaxSize(50)"`
+	Description string `valid:"Required; MaxSize(50)"`
+	Authtoken string `valid:"Required; MaxSize(50)"`
 }
 func main() {
 	err := godotenv.Load()
@@ -97,15 +99,37 @@ func main() {
 
 	})
 
-	router.POST("/api/expenses",func(c* gin.Context){
+	router.POST("/api/expenses/",func(c* gin.Context){
 		var expense expenses
-		if err := c.ShouldBindJSON(&expense); err!=nil{
-			c.String(http.StatusBadRequest,"Bad request")
-			return
+		if err:= c.ShouldBindJSON(&expense); err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"result":err.Error()})
+			return 
 		}
-		fmt.Println(expense.amount)
-		fmt.Println(expense.description)
-
+		fmt.Println(expense.Amount)
+		fmt.Println(expense.Title)
+		fmt.Println(expense.Description)
+		fmt.Println(expense.Authtoken)
+		amount,err := strconv.Atoi(expense.Amount)
+		if err!=nil{
+			log.Fatal(err)
+		}
+		fmt.Println(amount)
+		username := VerifyToken(expense.Authtoken,jwt_secret)
+		fmt.Println(username)
+		if username=="Unauthorized access"{
+			c.String(http.StatusOK,"Unauthorized access")
+			return 
+		}else if username=="Bad request"{
+			c.String(http.StatusOK,"Bad request")
+			return 
+		}
+		fmt.Println(amount)
+		fmt.Println(username)
+		result := AddExpense(username,amount,expense.Title,expense.Description,client)
+		if result=="Error"{
+			c.String(http.StatusOK,"Internal server error")
+		}
+		c.String(http.StatusOK,"Added to database")
 	})
 
 	fmt.Println("server running at port 7000")
