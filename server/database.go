@@ -129,7 +129,8 @@ func FetchExpenses(username string, year int, month int, client *mongo.Client)st
 	usersCollection := client.Database("NarutoDB").Collection("expenses")
 	var filter bson.D
 	if year == 0 && month == 0 {
-		filter = bson.D{{"username", username}}
+		mth := time.Now().Month()
+		filter = bson.D{{"username", username},{"month",mth}}
 	} else if year == 0 && month != 0 {
 		filter = bson.D{{"username", username}, {"month", month}}
 	} else if year != 0 && month == 0 {
@@ -137,7 +138,8 @@ func FetchExpenses(username string, year int, month int, client *mongo.Client)st
 	} else {
 		filter = bson.D{{"username", username}, {"year", year}, {"month", month}}
 	}
-	data, err := usersCollection.Find(context.TODO(), filter)
+	opts := options.Find().SetSort(bson.D{{"day",1}})
+	data, err := usersCollection.Find(context.TODO(), filter,opts)
 	var results []bson.M
 	if err = data.All(context.TODO(), &results); err != nil {
 		return "Internal server error"
@@ -145,14 +147,31 @@ func FetchExpenses(username string, year int, month int, client *mongo.Client)st
 	if err != nil {
 		return "Internal server error"
 	}
-	// for _, result := range results {
-	// 	jsonByte, err := json.Marshal(result)
-	// 	if err!=nil{
-	// 		log.Fatal(err)
-	// 	}
-	// 	// fmt.Println(string(jsonByte))
-	// }
-
 	r1,err := json.Marshal(results)
 	return string(r1)
+}
+
+func AddTranscation(username string, mode string, amount int, description string,client *mongo.Client)string{
+	collcn := client.Database("NarutoDB").Collection("transactions")
+	day := time.Now().Day()
+	month := time.Now().Month()
+	year := time.Now().Year()
+	filter := bson.D{{"username",username},{"mode",mode},{"amount",amount},{"description",description},{"day",day},{"month",month},{"year",year}}
+	insertResult,err := collcn.InsertOne(context.TODO(),filter)
+	if err!=nil{
+		return "Error"
+	}
+	fmt.Println(insertResult)
+	return "Done"
+}
+
+func FetchTranscations(username string,mode string, client *mongo.Client)string{
+	collcn := client.Database("NarutoDB").Collection("transactions")
+	var filter bson.D
+	if mode=="none"{
+		filter = bson.D{{"username",username}}
+	}else if mode=="loan" || mode=="credit"{
+		filter = bson.D{{"username",username},{"mode",mode}}
+	}
+	data, err 
 }
