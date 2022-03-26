@@ -165,13 +165,40 @@ func AddTranscation(username string, mode string, amount int, description string
 	return "Done"
 }
 
-func FetchTranscations(username string,mode string, client *mongo.Client)string{
+func FetchTranscations(username string,mode string, year int, month int,client *mongo.Client)string{
 	collcn := client.Database("NarutoDB").Collection("transactions")
 	var filter bson.D
 	if mode=="none"{
-		filter = bson.D{{"username",username}}
+		if year==0&&month==0{
+			filter = bson.D{{"username",username}}
+		}else if year==0&&month!=0{
+			filter = bson.D{{"username",username},{"month",month}}
+		}else if year!=0&& month==0{
+			filter = bson.D{{"username",username},{"year",year}}
+		}else{
+			filter = bson.D{{"username",username},{"month",month},{"year",year}}
+		}
 	}else if mode=="loan" || mode=="credit"{
-		filter = bson.D{{"username",username},{"mode",mode}}
+		if year==0&&month==0{
+			filter = bson.D{{"username",username},{"mode",mode}}
+		}else if year==0&&month!=0{
+			filter = bson.D{{"username",username},{"month",month},{"mode",mode}}
+		}else if year!=0&& month==0{
+			filter = bson.D{{"username",username},{"year",year},{"mode",mode}}
+		}else{
+			filter = bson.D{{"username",username},{"month",month},{"year",year},{"mode",mode}}
+		}
 	}
-	data, err 
+	
+	opts := options.Find().SetSort(bson.D{{"day",1},{"month",1},{"year",1}})
+	data,err := collcn.Find(context.TODO(),filter,opts)
+	if err!=nil{
+		log.Fatal(err)
+	}
+	var results [] bson.M
+	if err = data.All(context.TODO(),&results); err!=nil{
+		return "Internal server error"
+	}
+	r1,err := json.Marshal(results)
+	return string(r1)
 }

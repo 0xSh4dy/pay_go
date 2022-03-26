@@ -44,6 +44,14 @@ type expenses struct {
 	Authtoken   string `valid:"Required; MaxSize(50)"`
 }
 
+type transactions struct{
+	Amount string `valid:"Required; MaxSize(10)"`
+	Title string `valid:"Required; MaxSize(50)"`
+	Mode string `valid:"Required; MaxSize(10)"`
+	Description string `valid:"Required; MaxSize(50)"`
+	Authtoken string `valid:"Required MaxSize(200)"`
+}
+
 type cookies struct {
 	Authcookie string `valid:"Required; MaxSize(50)"`
 }
@@ -138,6 +146,7 @@ func main() {
 		c.String(http.StatusOK, "Added to database")
 	})
 
+
 	router.GET("/api/expenses/", func(c *gin.Context) {
 		token := c.Query("token")
 		month,err := strconv.Atoi(c.Query("month"))
@@ -160,6 +169,41 @@ func main() {
 		}
 		stats := FetchExpenses(username,year,month,client)
 		c.String(http.StatusOK, stats)
+	})
+
+	router.POST("/api/transactions/",func(c *gin.Context){
+		var transaction transactions
+		err := c.ShouldBindJSON(&transaction)
+		if err!=nil{
+			c.JSON(http.StatusBadRequest,gin.H{"result": err.Error()})
+		}
+		fmt.Println(transaction)
+		c.String(http.StatusOK,"saved")
+	})
+	
+	router.GET("/api/transcations/",func(c *gin.Context){
+		token := c.Query("token")
+		mode := c.Query("mode")
+		month,err := strconv.Atoi(c.Query("month"))
+		if err!=nil{
+			fmt.Println(err)
+			return
+		}
+		year,err := strconv.Atoi(c.Query("year"))
+		if err!=nil{
+			fmt.Println(err)
+			return
+		}
+		username := VerifyToken(token,jwt_secret)
+		if username=="Unauthorized access"{
+			c.String(http.StatusOK,"Unauthorized access")
+			return 
+		}else if username=="Bad request"{
+			c.String(http.StatusOK,"Bad request")
+			return 
+		}
+		stats := FetchTranscations(username,mode,year,month,client)
+		c.String(http.StatusOK,stats)
 	})
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")
