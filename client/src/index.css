@@ -65,3 +65,8 @@ code {
 .trfilter{
   width: fit-content;
 }
+.divResize{
+  width: fit-content;
+  margin: auto;
+  margin-top: 35vh;
+}

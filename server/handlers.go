@@ -2,6 +2,9 @@ package main
 
 import (
 	"github.com/dgrijalva/jwt-go"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"fmt"
 )
 
 type Claims struct{
@@ -36,4 +39,22 @@ func VerifyToken(token string,jwt_key []byte) string{
 		return "Unauthorized access"
 	}
 	return claims.Username
+}
+
+func PasswordResetEmail(username string, email string,api_key string){
+	from := mail.NewEmail("pay_go","test@example.com")
+	subject := "Reset Password"
+	to := mail.NewEmail(username,email)
+	htmlContent := "<h1>Email for testing</h1>"
+	plainContent := "Email for testing"
+	message := mail.NewSingleEmail(from,subject,to,plainContent,htmlContent)
+	client := sendgrid.NewSendClient(api_key)
+	response, err := client.Send(message)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(response.StatusCode)
+		fmt.Println(response.Body)
+		fmt.Println(response.Headers)
+	}
 }

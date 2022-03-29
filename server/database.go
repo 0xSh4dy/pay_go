@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"log"
-
 	"go.mongodb.org/mongo-driver/bson"
 
 	"encoding/json"
@@ -25,17 +23,17 @@ import (
 func ConnectDB(db_url string) *mongo.Client {
 	client, err := mongo.NewClient(options.Client().ApplyURI(db_url))
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		// Can't connect to Mongo server
 		fmt.Println("Cannot connect to the mongo server")
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	fmt.Println("Connected to the database")
 	return client
@@ -151,12 +149,12 @@ func FetchExpenses(username string, year int, month int, client *mongo.Client)st
 	return string(r1)
 }
 
-func AddTranscation(username string, mode string, amount int, description string,client *mongo.Client)string{
+func AddTranscation(username string, mode string,title string, amount int, description string,client *mongo.Client)string{
 	collcn := client.Database("NarutoDB").Collection("transactions")
 	day := time.Now().Day()
 	month := time.Now().Month()
 	year := time.Now().Year()
-	filter := bson.D{{"username",username},{"mode",mode},{"amount",amount},{"description",description},{"day",day},{"month",month},{"year",year}}
+	filter := bson.D{{"username",username},{"mode",mode},{"title",title},{"amount",amount},{"description",description},{"day",day},{"month",month},{"year",year}}
 	insertResult,err := collcn.InsertOne(context.TODO(),filter)
 	if err!=nil{
 		return "Error"
@@ -165,7 +163,7 @@ func AddTranscation(username string, mode string, amount int, description string
 	return "Done"
 }
 
-func FetchTranscations(username string,mode string, year int, month int,client *mongo.Client)string{
+func FetchTransactions(username string,mode string, year int, month int,client *mongo.Client)string{
 	collcn := client.Database("NarutoDB").Collection("transactions")
 	var filter bson.D
 	if mode=="none"{
@@ -175,10 +173,12 @@ func FetchTranscations(username string,mode string, year int, month int,client *
 			filter = bson.D{{"username",username},{"month",month}}
 		}else if year!=0&& month==0{
 			filter = bson.D{{"username",username},{"year",year}}
-		}else{
+		}else if year!=0 &&month!=0{
 			filter = bson.D{{"username",username},{"month",month},{"year",year}}
+		}else{
+			filter = bson.D{{"username",username}}
 		}
-	}else if mode=="loan" || mode=="credit"{
+	}else if mode=="debt" || mode=="credit"{
 		if year==0&&month==0{
 			filter = bson.D{{"username",username},{"mode",mode}}
 		}else if year==0&&month!=0{
@@ -188,12 +188,14 @@ func FetchTranscations(username string,mode string, year int, month int,client *
 		}else{
 			filter = bson.D{{"username",username},{"month",month},{"year",year},{"mode",mode}}
 		}
+	}else{
+		return "Invalid mode"
 	}
 	
-	opts := options.Find().SetSort(bson.D{{"day",1},{"month",1},{"year",1}})
+	opts := options.Find().SetSort(bson.D{{"year",1},{"month",1},{"day",1}})
 	data,err := collcn.Find(context.TODO(),filter,opts)
 	if err!=nil{
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 	var results [] bson.M
 	if err = data.All(context.TODO(),&results); err!=nil{

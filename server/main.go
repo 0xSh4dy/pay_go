@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	// "reflect"
@@ -56,11 +55,16 @@ type cookies struct {
 	Authcookie string `valid:"Required; MaxSize(50)"`
 }
 
+type changes struct{
+	Email string `valid:"Required; MaxSize(50)"`
+}
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
+	email_api_key := os.Getenv("email_api_key")
+	fmt.Println(email_api_key)
 	db_url := os.Getenv("db_url")
 	jwt_secret := []byte(os.Getenv("jwt_secret"))
 	client := ConnectDB(db_url)
@@ -113,6 +117,17 @@ func main() {
 
 	})
 
+	router.POST("/api/change/",func(c* gin.Context){
+		var change changes
+		err := c.ShouldBindJSON(&change)
+		if err!=nil{
+			c.String(http.StatusOK,"Invalid JSON format")
+			return
+		}
+		fmt.Println(change.Email)
+		c.String(http.StatusOK,"alright")
+	})
+
 	router.POST("/api/expenses/", func(c *gin.Context) {
 		var expense expenses
 		if err := c.ShouldBindJSON(&expense); err != nil {
@@ -125,7 +140,7 @@ func main() {
 		fmt.Println(expense.Authtoken)
 		amount, err := strconv.Atoi(expense.Amount)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 		}
 		fmt.Println(amount)
 		username := VerifyToken(expense.Authtoken, jwt_secret)
@@ -171,17 +186,35 @@ func main() {
 		c.String(http.StatusOK, stats)
 	})
 
-	router.POST("/api/transactions/",func(c *gin.Context){
+	router.POST("/api/transaction/",func(c *gin.Context){
 		var transaction transactions
 		err := c.ShouldBindJSON(&transaction)
 		if err!=nil{
 			c.JSON(http.StatusBadRequest,gin.H{"result": err.Error()})
 		}
-		fmt.Println(transaction)
-		c.String(http.StatusOK,"saved")
+		tkn := transaction.Authtoken
+		chk := VerifyToken(tkn,jwt_secret)
+		if chk=="Unauthorized access"{
+			c.String(http.StatusOK,"Unauthorized access")
+			return 
+		}else if chk=="Bad request"{
+			c.String(http.StatusOK,"Bad request")
+			return
+		}
+		amnt,err := strconv.Atoi(transaction.Amount)
+		if err!=nil{
+			fmt.Println(err)
+		}
+		res := AddTranscation(chk,transaction.Mode,transaction.Title,amnt,transaction.Description,client)
+		if res=="Error"{
+			c.String(http.StatusOK,"Internal server error")
+			return
+		}
+
+		c.String(http.StatusOK,"Saved")
 	})
 	
-	router.GET("/api/transcations/",func(c *gin.Context){
+	router.GET("/api/transaction/",func(c *gin.Context){
 		token := c.Query("token")
 		mode := c.Query("mode")
 		month,err := strconv.Atoi(c.Query("month"))
@@ -202,7 +235,7 @@ func main() {
 			c.String(http.StatusOK,"Bad request")
 			return 
 		}
-		stats := FetchTranscations(username,mode,year,month,client)
+		stats := FetchTransactions(username,mode,year,month,client)
 		c.String(http.StatusOK,stats)
 	})
 	fmt.Println("server running at port 7000")

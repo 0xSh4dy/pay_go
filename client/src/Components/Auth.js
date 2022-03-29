@@ -119,6 +119,9 @@ function Home(){
                 setMode("register");
                 setModeText("Already have an account? Login");
             }}>{modeText}</p>
+            <p className='mt-5 txtHover' onClick={()=>{
+                window.location.href = "/change"
+            }}>Forgot password? Click here to reset</p>
         </div>  </div>)  
     }
     function Signup(){
