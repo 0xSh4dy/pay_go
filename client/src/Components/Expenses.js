@@ -12,7 +12,7 @@ function Expenses(){
     const [month,setMonth] = useState(0);
     const [btnText,setbtnText] = useState("Add new");
     const [apiData,setApiData] = useState([]);
-    
+    const [total,setTotal] = useState(0);
     useEffect(ApplyFilter,[]);
 
     function SubmitForm(){
@@ -32,11 +32,26 @@ function Expenses(){
         });
     }
 
+   
     function ApplyFilter(){
         const cookie = new Cookies();
         const authCookie = cookie.get("auth");
         if(authCookie===undefined){
             window.location.href = "";
+        }
+        let yr;
+        let mth;
+        if(year==""){
+            yr = 0;
+        }
+        else{
+            yr= year;
+        }
+        if(month==""){
+            mth=0;
+        }
+        else{
+            mth = month;
         }
         let data = {authCookie:authCookie};
         axios({
@@ -44,22 +59,30 @@ function Expenses(){
             url:"http://127.0.0.1:7000/api/expenses/",
             params:{
                 token:authCookie,
-                year:year,
-                month:month
+                year:yr,
+                month:mth
             }
         }).then((res)=>{
             if(res.data==="Unauthorized access"){
                 window.location.href = "/unauthorized"
+                setTotal(0);
             }
             else if(res.data==="Bad request"){
                 window.location.href = "/badrequest"
+                setTotal(0);
             }
             else{
                 if(res.data===null){
                     setApiData([{_id:-1,day:0,month:month,year:year,title:"No data found",amount:0}]);
+                    setTotal(0);
                 }
                 else{
                 setApiData(res.data);
+                let sum = 0;
+                for(let d of res.data){
+                    sum += parseInt(d.amount);
+                }
+                setTotal(sum);
             }
             }
         })
@@ -152,7 +175,13 @@ else {
             <div className="text-[#2929F0] bg-[#6EF029] expAmount">Amount</div> 
         </div>
         {adata.map(ExpenseBox)}
+        <div className="expensesGrid justify-center mt-2">
+            <div className="text-[#2929F0] bg-[#6EF029] expData mr-2">Hmm</div>
+            <div className="text-[#2929F0] bg-[#6EF029] expTitle mr-2">Total Expenses</div>
+            <div className="text-[#2929F0] bg-[#6EF029] expAmount">{total}</div> 
         </div>
+        </div>
+        
     </div>)
 }
 }

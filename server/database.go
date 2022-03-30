@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strconv"
+
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"encoding/json"
 	// "reflect"
@@ -120,6 +123,10 @@ func AddExpense(username string, amount int, title string, description string, c
 		return "Error"
 	}
 	fmt.Println(insertResult)
+	eventResult := AddEvent(username,"expenditure",description,client)
+	if eventResult == "Error"{
+		return "Error"
+	}
 	return "Done"
 }
 
@@ -160,6 +167,15 @@ func AddTranscation(username string, mode string,title string, amount int, descr
 		return "Error"
 	}
 	fmt.Println(insertResult)
+	var eventResult string
+	if mode=="credit"{
+		eventResult = AddEvent(username,"new","Credit: "+strconv.Itoa(amount)+"--> " +description,client)
+	}else if mode=="debt"{
+		eventResult = AddEvent(username,"new","Debt: "+strconv.Itoa(amount)+"--> "+description,client)
+	}
+	if eventResult=="Error"{
+		return "Error"
+	}
 	return "Done"
 }
 
@@ -203,4 +219,62 @@ func FetchTransactions(username string,mode string, year int, month int,client *
 	}
 	r1,err := json.Marshal(results)
 	return string(r1)
+}
+
+func FetchTransactionById(id string,client *mongo.Client)string{
+	collcn := client.Database("NarutoDB").Collection("transactions")
+	s1,err := primitive.ObjectIDFromHex(id)
+	if err!=nil{
+		return "Error"
+	}
+	var result bson.M
+	er := collcn.FindOne(context.TODO(),bson.M{"_id":s1}).Decode(&result)
+	if er!=nil{
+		return "Error"
+	}
+	r1,e := json.Marshal(result)
+	if e!=nil{
+		return "Error"
+	}
+	return string(r1)
+}
+func AddEvent(username string, mode string, description string, client *mongo.Client)string{
+	eventsCollection := client.Database("NarutoDB").Collection("events")
+	var x bson.D
+	if mode=="new"{
+		x = bson.D{{"username",username},{"description",description},{"key",0}}
+	}else if mode=="creditClear"{
+		x = bson.D{{"username",username},{"description",description},{"key",1}}
+	}else if mode=="debtClear"{
+		x = bson.D{{"username",username},{"description",description},{"key",2}}
+	}else if mode=="paidSome"{
+		x = bson.D{{"username",username},{"description",description},{"key",3}}
+	}else if mode=="receivedSome"{
+		x = bson.D{{"username",username},{"description",description},{"key",4}}
+	}else if mode=="expenditure"{
+		x = bson.D{{"username",username},{"description",description},{"key",5}}
+	}
+	insertResult,err := eventsCollection.InsertOne(context.TODO(),x)
+	if err!=nil{
+		return "Error"
+	}
+	fmt.Println(insertResult)
+	return "Saved"
+}
+
+func UpdateAmount(newAmount string,id string, client *mongo.Client)string{
+	fmt.Println(newAmount)
+	fmt.Println(id)
+	collcn := client.Database("NarutoDB").Collection("transactions")
+	s1,err := primitive.ObjectIDFromHex(id)
+	if err!=nil{
+		return "Error"
+	}
+	updateRes,er := collcn.UpdateOne(context.TODO(),bson.M{"_id":s1},bson.D{{"$set",bson.D{{"amount",newAmount}}}})
+	if er!=nil{
+		fmt.Println(er)
+		return "Error"
+	}
+	fmt.Println(updateRes)
+	return "DONE"
 }

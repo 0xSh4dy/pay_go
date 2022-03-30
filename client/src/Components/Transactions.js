@@ -15,6 +15,8 @@ function Transactions() {
   const [description, setDescription] = useState('')
   const [title, setTitle] = useState('')
   const [fetchedData,setFetchedData] = useState([]);
+  const [totalPay,setTotalPay] = useState(0);
+  const [totalReceive,setTotalReceive] = useState(0);
 
   useEffect(()=>{
     const cks = new Cookies();
@@ -33,7 +35,18 @@ function Transactions() {
         setFetchedData([{_id:-1,day:0,month:month,year:year,title:"No data found",amount:0}]);
     }else{
       setFetchedData(res.data);
-      console.log(res.data);
+      let dbt = 0;
+      let crdt = 0;
+      for(let d of res.data){
+        if(d.mode==="credit"){
+          crdt += parseInt(d.amount);
+        }
+        else if(d.mode==="debt"){
+          dbt += parseInt(d.amount);
+        }
+      }
+      setTotalPay(dbt);
+      setTotalReceive(crdt);
     }
     })
   },[]);
@@ -98,7 +111,7 @@ function Transactions() {
   function TransactionBox(props){
     return (<div className="grid grid-cols-4 gap-x-2 mt-2" key={props._id}>
         <div className="text-[#2929F0] bg-[#57F2E2] expData ">{props.day+"/"+props.month+"/"+props.year}</div>
-        <div className="text-[#2929F0] bg-[#57F2E2] expTitle ">{props.title}</div>
+        <div className="text-[#2929F0] bg-[#57F2E2] expTitle hover:text-[#F30D0A]"> <a href={"/transactions/user?_id="+props._id}>{props.title}</a></div>
         <div className="text-[#2929F0] bg-[#57F2E2] expAmount">{props.amount}</div> 
         <div className="text-[#2929F0] bg-[#57F2E2] expMode">{props.mode}</div> 
     </div>)
@@ -221,6 +234,10 @@ function Transactions() {
           <div className="text-[#2929F0] bg-[#6EF029] expMode">Mode</div> 
       </div>
         {fetchedData.map(TransactionBox)}
+        <div className='flex justify-around mt-5'>
+            <div className='bg-[#9AB6F4] p-3 text-lg'><span>Total amount you have to pay: </span>{totalPay}</div>
+            <div className='bg-[#9AB6F4] p-3 text-lg'><span>Total amount you have to receive: </span>{totalReceive}</div>
+        </div>
     </div>
     </div>
   )

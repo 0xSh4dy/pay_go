@@ -58,6 +58,12 @@ type cookies struct {
 type changes struct{
 	Email string `valid:"Required; MaxSize(50)"`
 }
+
+type newAmount struct{
+	Amount string
+	Token string
+	ID string
+}
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -237,6 +243,53 @@ func main() {
 		}
 		stats := FetchTransactions(username,mode,year,month,client)
 		c.String(http.StatusOK,stats)
+	})
+	
+	router.GET("/api/transaction/:username",func(c *gin.Context){
+		id := c.Query("_id")
+		token := c.Query("token")
+		username := VerifyToken(token,jwt_secret)
+		if username=="Unauthorized access"{
+			c.String(http.StatusUnauthorized,"Unauthorized access")
+			return
+		}else if username=="Bad request"{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}
+		fmt.Println(id)
+		fmt.Println(username)
+		fetchedData := FetchTransactionById(id,client)
+		if fetchedData=="Error"{
+			c.String(http.StatusNotFound,"Not found")
+			return
+		}
+		c.String(http.StatusOK,fetchedData)
+	})
+
+	router.PATCH("/api/transaction/",func(c *gin.Context){
+		var newAmnt newAmount
+		err := c.ShouldBindJSON(&newAmnt)
+		if err!=nil{
+			c.String(http.StatusBadRequest,"Invalid format")
+			return
+		}
+		token := newAmnt.Token
+		amt := newAmnt.Amount
+		id := newAmnt.ID
+		username := VerifyToken(token,jwt_secret)
+		if username=="Bad request"{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}else if username=="Unauthorized access"{
+			c.String(http.StatusUnauthorized,"Unauthorized access")
+			return
+		}
+		r1 := UpdateAmount(amt,id,client)
+		if r1=="Error"{
+			c.String(http.StatusInternalServerError,"Internal server error")
+			return
+		}
+		c.String(http.StatusOK,"Updated")
 	})
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")

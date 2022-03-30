@@ -7,6 +7,7 @@ import Logout from "./Logout";
 import Unauthorized from "./Unauthorized";
 import Badrequest from "./Badrequest";
 import Forgot from "./Forgot";
+import SpecificTranscn from "./SpecificTranscn";
 
 function Router(){
     return (
@@ -20,6 +21,7 @@ function Router(){
                 <Route path="badrequest" element={<Badrequest/>}/>
                 <Route path="unauthorized" element={<Unauthorized/>}/>
                 <Route path="change" element={<Forgot/>}/>
+                <Route path="transactions/:username" element={<SpecificTranscn/>}/>
             </Routes>
         </BrowserRouter>
     )
