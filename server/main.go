@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+
 	// "reflect"
 	"strconv"
 
@@ -63,6 +65,18 @@ type newAmount struct{
 	Amount string
 	Token string
 	ID string
+}
+
+type evtStruct struct{
+	_id string
+	Amount string
+	Day int
+	Description string
+	Mode string
+	Month int
+	Title string
+	Username string 
+	Year int
 }
 func main() {
 	err := godotenv.Load()
@@ -235,10 +249,10 @@ func main() {
 		}
 		username := VerifyToken(token,jwt_secret)
 		if username=="Unauthorized access"{
-			c.String(http.StatusOK,"Unauthorized access")
+			c.String(http.StatusUnauthorized,"Unauthorized access")
 			return 
 		}else if username=="Bad request"{
-			c.String(http.StatusOK,"Bad request")
+			c.String(http.StatusBadRequest,"Bad request")
 			return 
 		}
 		stats := FetchTransactions(username,mode,year,month,client)
@@ -284,12 +298,51 @@ func main() {
 			c.String(http.StatusUnauthorized,"Unauthorized access")
 			return
 		}
+		var evStruct evtStruct
+		er := json.Unmarshal([]byte(FetchTransactionById(id,client)),&evStruct)
+		if er!=nil{
+			fmt.Println(er)
+		}
+
+		if amt=="0"{
+			
+			if evStruct.Mode == "credit"{
+				AddEvent(evStruct.Username,"creditClear",evStruct.Description,client)
+			}else if evStruct.Mode == "debt"{
+				AddEvent(evStruct.Username,"debtClear",evStruct.Description,client)
+			}
+
+		}else{
+			if evStruct.Mode == "credit"{
+				AddEvent(evStruct.Username,"receivedSome",evStruct.Description,client)
+			}else if evStruct.Mode=="debt"{
+				AddEvent(evStruct.Username,"paidSome",evStruct.Description,client)
+			}
+		}
 		r1 := UpdateAmount(amt,id,client)
 		if r1=="Error"{
 			c.String(http.StatusInternalServerError,"Internal server error")
 			return
 		}
 		c.String(http.StatusOK,"Updated")
+	})
+
+	router.GET("/api/dashboard",func(c* gin.Context){
+		token := c.Query("token")
+		username := VerifyToken(token,jwt_secret)
+		if username=="Unauthorized access"{
+			c.String(http.StatusUnauthorized,"Unauthorized access")
+			return
+		}else if username=="Bad request"{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}
+		fetchedData := FetchEvents(username,client)
+		if fetchedData=="Error" || fetchedData=="Internal server error"{
+			c.String(http.StatusInternalServerError,"Internal server error")
+			return
+		}
+		c.String(http.StatusOK,fetchedData)
 	})
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")

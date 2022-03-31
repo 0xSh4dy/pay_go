@@ -149,9 +149,7 @@ func FetchExpenses(username string, year int, month int, client *mongo.Client)st
 	if err = data.All(context.TODO(), &results); err != nil {
 		return "Internal server error"
 	}
-	if err != nil {
-		return "Internal server error"
-	}
+	
 	r1,err := json.Marshal(results)
 	return string(r1)
 }
@@ -277,4 +275,21 @@ func UpdateAmount(newAmount string,id string, client *mongo.Client)string{
 	}
 	fmt.Println(updateRes)
 	return "DONE"
+}
+
+func FetchEvents(username string, client *mongo.Client)string{
+	evtColl := client.Database("NarutoDB").Collection("events")
+	opts := options.Find().SetLimit(20)
+	result,err := evtColl.Find(context.TODO(),bson.M{"username":username},opts)
+	if err!=nil{
+		fmt.Println(err)
+		return "Error"
+	}
+	var results [] bson.M
+	if err = result.All(context.TODO(), &results); err != nil {
+		return "Internal server error"
+	}
+	
+	r1,err := json.Marshal(results)
+	return string(r1)
 }

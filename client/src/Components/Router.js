@@ -18,8 +18,6 @@ function Router(){
                 <Route path="transactions" element={<Transactions/>}/>
                 <Route path="expenses" element={<Expenses/>}/>
                 <Route path="logout" element={<Logout/>}/>
-                <Route path="badrequest" element={<Badrequest/>}/>
-                <Route path="unauthorized" element={<Unauthorized/>}/>
                 <Route path="change" element={<Forgot/>}/>
                 <Route path="transactions/:username" element={<SpecificTranscn/>}/>
             </Routes>

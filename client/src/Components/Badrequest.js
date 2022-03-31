@@ -1,5 +1,5 @@
 export default function Badrequest(){
     return (<div>
-        Badrequest
+        Bad request
     </div>)
 }

@@ -146,11 +146,11 @@ function Home(){
         window.location.href = "/dashboard";
     }
     else if(signupOK===true){
-        return <div>
+        return <div className='box'>
             {Login()}
         </div>
     }
-    return <div>
+    return <div className='box'>
         {mode==="login"?Login():Signup()}
     </div>
 }

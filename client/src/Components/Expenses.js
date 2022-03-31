@@ -64,11 +64,11 @@ function Expenses(){
             }
         }).then((res)=>{
             if(res.data==="Unauthorized access"){
-                window.location.href = "/unauthorized"
+                window.location.href = "/"
                 setTotal(0);
             }
             else if(res.data==="Bad request"){
-                window.location.href = "/badrequest"
+                window.location.href = "/"
                 setTotal(0);
             }
             else{

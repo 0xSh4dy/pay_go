@@ -20,6 +20,7 @@ code {
   position:relative;
   top:30vh;
   left: 40vw;
+  width: fit-content;
 }
 .msgBox{
   position: relative;
