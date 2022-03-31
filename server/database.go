@@ -293,3 +293,25 @@ func FetchEvents(username string, client *mongo.Client)string{
 	r1,err := json.Marshal(results)
 	return string(r1)
 }
+
+func ChangePassword(password string, email string, client *mongo.Client)string{
+	collcn := client.Database("NarutoDB").Collection("users")
+	hash := sha256.Sum256([]byte(password))
+	hashedPassword := fmt.Sprintf("%x",hash)
+	fmt.Println(hashedPassword)
+	var result bson.M
+	err := collcn.FindOne(context.TODO(),bson.M{"email":email}).Decode(&result)
+	fmt.Println(email)
+	if err!=nil{
+		fmt.Println(err)
+		return "Invalid email"
+	}
+
+	updateResult,er := collcn.UpdateOne(context.TODO(),bson.M{"email":email},bson.D{{"$set",bson.M{"password":hashedPassword}}})
+	if er!=nil{
+		fmt.Println(er)
+		return "Error"
+	}
+	fmt.Println(updateResult)
+	return "Done"
+}

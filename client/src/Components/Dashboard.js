@@ -38,13 +38,21 @@ function Dashboard(){
                     <div className="bg-[#B5F49A] p-2">{props.description}</div>
                 </div>
             )
-        }
+        }else if(props.key==5){
         return (
             <div className="grid grid-cols-2 gap-x-2 mb-4"  key={props._id}>
                 <div className="bg-[#F32D1D] text-[#56F51F] p-2">New Expense</div>
                 <div className="bg-[#F32D1D] text-[#56F51F] p-2">{props.description}</div>
             </div>
         )
+    }
+    return(
+        <div className="mb-4 pl-2 text-left text-2xl pt-14" key="-1">
+                <div className="bg-[#F32D1D] text-[#56F51F] p-2">Welcome to pay_go</div>
+                <div className="bg-[#F32D1D] text-[#56F51F] p-2">{props.description}</div>
+
+        </div>
+    )
     }
     useEffect(()=>{
         axios({
@@ -54,9 +62,14 @@ function Dashboard(){
                 token:getAuthToken()
             }
         }).then((res)=>{
+            if(res.data==null){
+                setApiData([{_id:-1,description:"Easily track your expenses, payments to receive, payments to do!"}]);
+           }
+            else{
             setApiData(res.data);
+        }
         }).catch((err)=>{
-            window.location.href = "/";
+            console.log(err)
         });
     },[])
     return <div>

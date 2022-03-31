@@ -8,7 +8,7 @@ import (
 )
 
 type Claims struct{
-	Username string `valid:"Required; MaxSize(50)`
+	Username string `valid:"Required; MaxSize(50)"`
 	jwt.StandardClaims
 }
 
@@ -41,11 +41,11 @@ func VerifyToken(token string,jwt_key []byte) string{
 	return claims.Username
 }
 
-func PasswordResetEmail(username string, email string,api_key string){
-	from := mail.NewEmail("pay_go","test@example.com")
+func PasswordResetEmail(username string, email string,url string, api_key string){
+	from := mail.NewEmail("Rakshit Awasthi","rakshitawasthi14@gmail.com")
 	subject := "Reset Password"
 	to := mail.NewEmail(username,email)
-	htmlContent := "<h1>Email for testing</h1>"
+	htmlContent := fmt.Sprintf("<div><p>Visit the following link to change your password</p>%s</div>",url)
 	plainContent := "Email for testing"
 	message := mail.NewSingleEmail(from,subject,to,plainContent,htmlContent)
 	client := sendgrid.NewSendClient(api_key)

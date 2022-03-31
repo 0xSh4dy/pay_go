@@ -59,12 +59,18 @@ type cookies struct {
 
 type changes struct{
 	Email string `valid:"Required; MaxSize(50)"`
+	Username string `valid:"Required; MaxSize(50)"`
 }
 
 type newAmount struct{
 	Amount string
 	Token string
 	ID string
+}
+
+type newPassword struct{
+	Password string `valid:"Required"`
+	Token string `valid:"Required"`
 }
 
 type evtStruct struct{
@@ -89,6 +95,7 @@ func main() {
 	jwt_secret := []byte(os.Getenv("jwt_secret"))
 	client := ConnectDB(db_url)
 	router := gin.Default()
+	router.LoadHTMLGlob("templates/*")
 	router.Use(CORSMiddleware())
 	router.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Server is up and running")
@@ -137,16 +144,7 @@ func main() {
 
 	})
 
-	router.POST("/api/change/",func(c* gin.Context){
-		var change changes
-		err := c.ShouldBindJSON(&change)
-		if err!=nil{
-			c.String(http.StatusOK,"Invalid JSON format")
-			return
-		}
-		fmt.Println(change.Email)
-		c.String(http.StatusOK,"alright")
-	})
+	
 
 	router.POST("/api/expenses/", func(c *gin.Context) {
 		var expense expenses
@@ -343,6 +341,62 @@ func main() {
 			return
 		}
 		c.String(http.StatusOK,fetchedData)
+	})
+
+	router.POST("/api/change/",func(c* gin.Context){
+		var change changes
+		err := c.ShouldBindJSON(&change)
+		if err!=nil{
+			c.String(http.StatusOK,"Invalid JSON format")
+			return
+		}
+		api_key := os.Getenv("email_api_key")
+		token := createToken(change.Email,jwt_secret)
+		if token=="Failed"{
+			c.String(http.StatusInternalServerError,"Internal server error")
+			return
+		}
+		url := fmt.Sprintf("http://127.0.0.1:7000/api/change?token=%s",token)
+		PasswordResetEmail(change.Username,change.Email,url, api_key)
+		fmt.Println(change.Email)
+		c.String(http.StatusOK,"alright")
+	})
+
+	router.GET("/api/change",func(c *gin.Context){
+		token := c.Query("token")
+		email := VerifyToken(token,jwt_secret)
+		if email=="Unauthorized access"{
+			c.String(http.StatusUnauthorized,"Unauthorized")
+			return
+		}else if email=="Bad request"{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}
+		c.HTML(http.StatusOK,"changePass.html",gin.H{"title":"Change Password"})
+	})
+
+	router.POST("/api/newpass/",func(c* gin.Context){
+		var newpass newPassword
+		err := c.ShouldBindJSON(&newpass)
+		if err!=nil{
+			c.String(http.StatusBadRequest,"Bad request")
+			return
+		}
+		email := VerifyToken(newpass.Token,jwt_secret)
+		if email=="Unauthorized access"{
+			c.String(http.StatusUnauthorized,"Unauthorized")
+		}else if email=="Bad request"{
+			c.String(http.StatusBadRequest,"Bad Request")
+		}
+		res := ChangePassword(newpass.Password,email,client)
+		if res=="Error"{
+			c.String(http.StatusInternalServerError,"Internal server error")
+			return
+		}else if res=="Invalid email"{
+			c.String(http.StatusNotFound,"Invalid email")
+			return
+		}
+		c.String(http.StatusOK,"Done")
 	})
 	fmt.Println("server running at port 7000")
 	router.Run(":7000")
